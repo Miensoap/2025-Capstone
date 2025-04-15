@@ -1,0 +1,49 @@
+### 업로드 데이터 포맷
+
+```json
+[
+  {
+    "timestamp": "2025-04-15T05:00:00Z",
+    "sensorData": {
+      "speed": 45.1,
+      "distance_excel": 12.1,
+      "distance_floor": 11.8,
+      "pulse": 71.0
+    },
+    "authorId": 12345,
+    "hash": {
+      "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+      "current": "e2c6f9f8e894b35ff35b4ea5bb5fa6ec9515a5e798f0f1b9c72b7d4e6f5428f4"
+    }
+  },
+  {
+    "timestamp": "2025-04-15T05:01:00Z",
+    "sensorData": {
+      "speed": 47.3,
+      "distance_excel": 12.0,
+      "distance_floor": 11.7,
+      "pulse": 72.4
+    },
+    "authorId": 12345,
+    "hash": {
+      "prev": "e2c6f9f8e894b35ff35b4ea5bb5fa6ec9515a5e798f0f1b9c72b7d4e6f5428f4",
+      "current": "0f3c435e8d884d861e0285c2f43701e1b2db4d8c1a4e21dcaa4f8400b34d9a7e"
+    }
+  },
+  {
+    "timestamp": "2025-04-15T05:02:00Z",
+    "sensorData": {
+      "speed": 48.5,
+      "distance_excel": 12.3,
+      "distance_floor": 11.9,
+      "pulse": 73.2
+    },
+    "authorId": 12345,
+    "hash": {
+      "prev": "0f3c435e8d884d861e0285c2f43701e1b2db4d8c1a4e21dcaa4f8400b34d9a7e",
+      "current": "afe8bb66cf4c3bcd3f031a51ad3e7d0aa3df7a4f64433a3df142f52d7b4986a2"
+    }
+  }
+]
+
+```
