@@ -1,49 +1,77 @@
-### 업로드 데이터 포맷
+# 2025-1 다학제간캡스톤디자인 : 급발진 기록 장치
+
+ESP32 기반 센서 디바이스로부터 수집된 로그 데이터를 서버에 업로드하고, 조작 여부를 검증하며 안전하게 보관하는 시스템입니다.
+
+---
+
+## 핵심 목표
+
+- 로그 조작 방지: 해시 체이닝 방식으로 데이터 무결성 확보
+- 기기-사용자 연결: 웹에서 사용자가 직접 등록한 디바이스만 로그 업로드/조회 가능
+- 이중 인증 구조: 사용자와 기기 인증을 분리하여 보안성 강화
+
+---
+
+## 조작 감지 설계
+
+### 고려한 방식
+
+| 방식                  | 설명                                         | 장단점                                   |
+| --------------------- | -------------------------------------------- | ---------------------------------------- |
+| 로그 단위 체이닝      | 각 센서 로그에 이전 로그 해시를 포함         | 조작 위치 검출 가능 / 기기 측 부하 발생  |
+| 파일 단위 해싱        | 하루치 로그를 하나의 파일로 보고 해시로 연결 | 부하 낮음 / 로그 일부 조작은 감지 어려움 |
+| 혼합 방식 (최종 선택) | 파일 단위로 해싱하되, 로그 내부는 체이닝     | 로그별 검증 + 일자별 단위 무결성 확보    |
+
+### 체이닝 구조
+
+- 각 `SensorLog`는 `prev`/`current` 해시 값을 가짐
+- 해시는 `prevHash + deviceId + timestamp + sensorData` 값을 이용해 생성
+- 해시 전략은 `HashStrategy` 인터페이스로 분리되어 유연하게 확장 가능
+
+---
+
+## 기기 등록 및 인증 방식
+
+### 기기 등록 흐름
+
+1. ESP32에서 `Captive Portal UI` 지원
+2. 사용자가 로그인 후 "기기 등록" 클릭
+3. `deviceId` (MAC) 를 서버로 전송 → 서버가 `secret` 발급
+4. ESP는 `deviceId` + `secret` 저장 → 인증에 사용
+
+### 인증 방식
+
+| 주체   | 인증 방식        | 헤더                                             |
+| ------ | ---------------- | ------------------------------------------------ |
+| 사용자 | Header 기반 인증 | `Authorization: Bearer ...`                      |
+| 기기   | Header 기반 인증 | `Authorization: Device deviceId=..., secret=...` |
+
+- 두 인증은 Spring Security의 분리된 필터 (`UserAuthenticationFilter`, `DeviceAuthenticationFilter`)로 동작
+
+---
+
+## 데이터 저장 전략
+
+### MongoDB - `DailyLogs`
+
+- 하나의 문서는 하루치 로그 (하나의 기기 기준)
+- 구조 예시:
 
 ```json
-[
-  {
-    "timestamp": "2025-04-15T05:00:00Z",
-    "sensorData": {
-      "speed": 45.1,
-      "distance_excel": 12.1,
-      "distance_floor": 11.8,
-      "pulse": 71.0
+{
+  "deviceId": "7CDE1120F23A",
+  "date": "2025-04-15",
+  "logs": [
+    {
+      "timestamp": "...",
+      "sensorData": {...},
+      "hash": { "prev": "...", "current": "..." }
     },
-    "authorId": 12345,
-    "hash": {
-      "prev": "0000000000000000000000000000000000000000000000000000000000000000",
-      "current": "e2c6f9f8e894b35ff35b4ea5bb5fa6ec9515a5e798f0f1b9c72b7d4e6f5428f4"
-    }
-  },
-  {
-    "timestamp": "2025-04-15T05:01:00Z",
-    "sensorData": {
-      "speed": 47.3,
-      "distance_excel": 12.0,
-      "distance_floor": 11.7,
-      "pulse": 72.4
-    },
-    "authorId": 12345,
-    "hash": {
-      "prev": "e2c6f9f8e894b35ff35b4ea5bb5fa6ec9515a5e798f0f1b9c72b7d4e6f5428f4",
-      "current": "0f3c435e8d884d861e0285c2f43701e1b2db4d8c1a4e21dcaa4f8400b34d9a7e"
-    }
-  },
-  {
-    "timestamp": "2025-04-15T05:02:00Z",
-    "sensorData": {
-      "speed": 48.5,
-      "distance_excel": 12.3,
-      "distance_floor": 11.9,
-      "pulse": 73.2
-    },
-    "authorId": 12345,
-    "hash": {
-      "prev": "0f3c435e8d884d861e0285c2f43701e1b2db4d8c1a4e21dcaa4f8400b34d9a7e",
-      "current": "afe8bb66cf4c3bcd3f031a51ad3e7d0aa3df7a4f64433a3df142f52d7b4986a2"
-    }
-  }
-]
-
+    ...
+  ]
+}
 ```
+
+### Index
+
+- `deviceId + date` 복합 인덱스로 빠른 조회 및 검증 처리

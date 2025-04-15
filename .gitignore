@@ -1,6 +1,7 @@
 **/application-secret.yml
 
 **/.DS_Store
+**/bin
 **/.gradle
 **/build/
 !server/gradle/wrapper/gradle-wrapper.jar
